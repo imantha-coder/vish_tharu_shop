@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management - Vish Tharu Lovely Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/admin_products.css">
+</head>
+
+<body>
+    <!-- Admin Dashboard -->
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Vish Tharu Lovely Shop</h2>
+                <p>Admin Dashboard</p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="admin.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="admin-products.html" class="active"><i class="fas fa-box"></i> Products</a></li>
+                <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search products...">
+                </div>
+                <div class="user-menu">
+                    <img src="../image/img1.jpg" alt="Admin">
+                    <span>Admin User</span>
+                </div>
+            </div>
+
+            <!-- Product Form -->
+            <div class="product-form">
+                <h2 id="formTitle">Add New Product</h2>
+                <form id="productForm" onsubmit="event.preventDefault(); handleProductSubmit();">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productName">Product Name</label>
+                            <input type="text" id="productName" name="productName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productCategory">Category</label>
+                            <select id="productCategory" name="productCategory" required class="styled-select">
+                                <option value="" disabled selected>Select a category</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Home & Living">Home & Living</option>
+                                <option value="Beauty & Personal Care">Beauty & Personal Care</option>
+                                <option value="Sports & Outdoors">Sports & Outdoors</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productColor">Color</label>
+                            <input type="text" id="productColor" name="productColor" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productPrice">Price (LKR)</label>
+                            <input type="number" id="productPrice" name="productPrice" required min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productImage">Product Image</label>
+                            <input type="file" id="productImage" name="productImage" accept="image/*" required>
+                            <div id="imagePreview" style="margin-top: 1rem; display: none;">
+                                <img id="preview" style="max-width: 200px; max-height: 200px; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productDiscount">Discount (%)</label>
+                            <input type="number" id="productDiscount" name="productDiscount" min="0" max="100" step="1" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="productAvailability">Availability</label>
+                            <select id="productAvailability" name="productAvailability" required>
+                                <option value="available">Available</option>
+                                <option value="unavailable">Unavailable</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="productDescription">Description</label>
+                        <textarea id="productDescription" name="productDescription" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">Add Product</button>
+                </form>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-container">
+                <h2>Manage Products</h2>
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Color</th>
+                            <th>Price Range</th>
+                            <th>Discount</th>
+                            <th>Availability</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsList">
+                        <!-- Products will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../scripts/main.js"></script>
+    <script src="../scripts/animations.js"></script>
+    <script>
+        // Product Management
+        const productForm = document.getElementById('productForm');
+        const productsList = document.getElementById('productsList');
+        let editingProductId = null;
+        const apiUrl = '../api/products.php'; // Update this path to match your server structure
+
+        // Image Preview
+        const imageInput = document.getElementById('productImage');
+        const imagePreview = document.getElementById('imagePreview');
+        const preview = document.getElementById('preview');
+
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fetch products from API
+        async function fetchProducts() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                return data.records || [];
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                return [];
+            }
+        }
+
+        // Display products
+        async function displayProducts() {
+            const products = await fetchProducts();
+            productsList.innerHTML = '';
+
+            if (products.length === 0) {
+                productsList.innerHTML = '<tr><td colspan="7" class="text-center">No products found</td></tr>';
+                return;
+            }
+
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+            <td>${product.name}</td>
+            <td>${product.category}</td>
+            <td>${product.color}</td>
+            <td>${product.price_range}</td>
+            <td>${product.discount || 0}%</td>
+            <td><span class="status ${product.is_available}">${product.is_available}</span></td>
+            <td>
+                <button onclick="editProduct(${product.id})" class="action-btn edit-btn">Edit</button>
+                <button onclick="deleteProduct(${product.id})" class="action-btn delete-btn">Delete</button>
+            </td>
+        `;
+                productsList.appendChild(row);
+            });
+        }
+
+        // Function to determine price range
+        function getPriceRange(price) {
+            if (price < 1000) return 'Under LKR 1,000';
+            if (price < 5000) return 'LKR 1,000 - 5,000';
+            if (price < 10000) return 'LKR 5,000 - 10,000';
+            if (price < 20000) return 'LKR 10,000 - 20,000';
+            if (price < 50000) return 'LKR 20,000 - 50,000';
+            return 'Above LKR 50,000';
+        }
+
+        // Add/Update Product
+        async function handleProductSubmit() {
+            const name = document.getElementById('productName').value;
+            const category = document.getElementById('productCategory').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const color = document.getElementById('productColor').value;
+            const description = document.getElementById('productDescription').value;
+            const discount = parseFloat(document.getElementById('productDiscount').value) || 0;
+            const availability = document.getElementById('productAvailability').value;
+            const imageFile = document.getElementById('productImage').files[0];
+
+            if (!name || !category || !price || !color || !description) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const priceRange = getPriceRange(price);
+
+            // Process image file
+            let imageData = null;
+            if (imageFile) {
+                imageData = await getBase64(imageFile);
+            }
+
+            // Prepare product data
+            const productData = {
+                name,
+                category,
+                category_id: getCategoryID(category), // Get category ID based on category name
+                price_range: priceRange,
+                color,
+                description,
+                discount,
+                is_available: availability
+            };
+
+            // Add image data if available
+            if (imageData) {
+                productData.image = imageData;
+            }
+
+            try {
+                let response;
+                if (editingProductId !== null) {
+                    // Update existing product
+                    productData.id = editingProductId;
+                    response = await fetch(apiUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                } else {
+                    // Add new product
+                    if (!imageData) {
+                        alert('Please select an image for the product');
+                        return;
+                    }
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                }
+                // Get the response text first
+                const responseText = await response.text();
+
+                // Try to parse as JSON
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error("Server returned non-JSON response:", responseText);
+                    alert("Server error occurred. Please check the console for details.");
+                    return;
+                }
+
+                if (!response.ok) {
+                    console.error('Server error response:', result);
+                    alert(`Error: ${result.message || 'Unknown server error'}`);
+                    return;
+                }
+
+                alert(editingProductId ? 'Product updated successfully!' : 'Product added successfully!');
+                resetForm();
+                displayProducts();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        // Helper function to get category ID based on category name
+        function getCategoryID(category) {
+            switch (category) {
+                case 'Electronics':
+                    return 1;
+                case 'Clothing':
+                    return 2;
+                case 'Home & Living':
+                    return 3;
+                case 'Beauty & Personal Care':
+                    return 4;
+                case 'Sports & Outdoors':
+                    return 5;
+                case 'Other':
+                    return 6;
+                default:
+                    return null;
+            }
+        }
+
+        // Helper function to convert File to base64
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Reset form after submission
+        function resetForm() {
+            productForm.reset();
+            imagePreview.style.display = 'none';
+            editingProductId = null;
+            document.querySelector('.submit-btn').textContent = 'Add Product';
+            document.getElementById('formTitle').textContent = 'Add New Product';
+            // Make image field required for new products
+            document.getElementById('productImage').required = true;
+        }
+
+        // Edit Product
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`${apiUrl}?id=${id}`);
+                const product = await response.json();
+
+                if (product) {
+                    document.getElementById('productName').value = product.name;
+                    document.getElementById('productCategory').value = product.category;
+                    document.getElementById('productPrice').value = product.price || '';
+                    document.getElementById('productColor').value = product.color;
+                    document.getElementById('productDescription').value = product.description;
+                    document.getElementById('productDiscount').value = product.discount || 0;
+                    document.getElementById('productAvailability').value = product.is_available;
+
+                    if (product.image) {
+                        preview.src = product.image;
+                        imagePreview.style.display = 'block';
+                    }
+
+                    editingProductId = id;
+                    document.querySelector('.submit-btn').textContent = 'Update Product';
+                    document.getElementById('formTitle').textContent = 'Edit Product';
+                    // Make image field optional for edits
+                    document.getElementById('productImage').required = false;
+
+                    // Scroll to the form
+                    document.querySelector('.product-form').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching product:', error);
+                alert('Failed to load product data. Please try again.');
+            }
+        }
+
+        // Delete Product
+        async function deleteProduct(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                try {
+                    const response = await fetch(`${apiUrl}?id=${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert('Product deleted successfully!');
+                        displayProducts();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    alert('Failed to delete product. Please try again.');
+                }
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            displayProducts();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add ripple effect to buttons
+            addRippleEffect();
+
+            // Add form validation enhancements
+            enhanceFormValidation();
+
+            // Add toast notifications
+            setupToastNotifications();
+
+            // Add loading overlay functionality
+            setupLoadingOverlay();
+
+            // Enhance image preview
+            enhanceImagePreview();
+        });
+
+        // Add ripple effect to buttons
+        function addRippleEffect() {
+            const buttons = document.querySelectorAll('button, .action-btn');
+
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const ripple = document.createElement('span');
+                    ripple.className = 'ripple-effect';
+                    ripple.style.top = `${y}px`;
+                    ripple.style.left = `${x}px`;
+
+                    this.appendChild(ripple);
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+        }
+
+        // Enhanced form validation
+        function enhanceFormValidation() {
+            const form = document.getElementById('productForm');
+            const inputs = form.querySelectorAll('input, select, textarea');
+
+            // Add validation message elements
+            inputs.forEach(input => {
+                if (input.hasAttribute('required')) {
+                    const parent = input.parentElement;
+                    const message = document.createElement('div');
+                    message.className = 'validation-message';
+                    message.textContent = `${input.previousElementSibling.textContent} is required`;
+                    parent.appendChild(message);
+
+                    // Add input event listeners
+                    input.addEventListener('input', () => {
+                        if (input.validity.valid) {
+                            parent.classList.remove('error');
+                        }
+                    });
+
+                    input.addEventListener('blur', () => {
+                        if (input.required && !input.value) {
+                            parent.classList.add('error');
+                        }
+                    });
+                }
+            });
+
+            // Add custom validation before form submission
+            const originalSubmitHandler = window.handleProductSubmit;
+            window.handleProductSubmit = function() {
+                let isValid = true;
+
+                inputs.forEach(input => {
+                    if (input.required && !input.value) {
+                        input.parentElement.classList.add('error');
+                        isValid = false;
+                    }
+                });
+
+                if (!isValid) {
+                    showToast('Please fill in all required fields', 'error');
+                    return false;
+                }
+
+                // If valid, show loading overlay
+                showLoading();
+
+                // Call the original handler
+                originalSubmitHandler();
+            };
+        }
+
+        // Toast notification system
+        function setupToastNotifications() {
+            // Create a toast container if it doesn't exist
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container';
+                document.body.appendChild(toastContainer);
+            }
+
+            // Add global toast function
+            window.showToast = function(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+
+                // Icon based on type
+                let icon = 'check-circle';
+                if (type === 'error') icon = 'times-circle';
+                if (type === 'warning') icon = 'exclamation-triangle';
+                if (type === 'info') icon = 'info-circle';
+
+                toast.innerHTML = `
+                    <i class="fas fa-${icon}"></i>
+                    <span>${message}</span>
+                `;
+
+                document.body.appendChild(toast);
+
+                // Show toast with delay
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+
+                // Remove toast after duration
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }, 5000);
+            };
+
+            // Override the alert function with toast
+            const originalAlert = window.alert;
+            window.alert = function(message) {
+                if (message.toLowerCase().includes('success')) {
+                    showToast(message, 'success');
+                } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
+                    showToast(message, 'error');
+                } else {
+                    showToast(message, 'info');
+                }
+            };
+        }
+
+        // Loading overlay
+        function setupLoadingOverlay() {
+            // Create loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.style.display = 'none';
+            loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
+            document.body.appendChild(loadingOverlay);
+
+            // Add global functions
+            window.showLoading = function() {
+                loadingOverlay.style.display = 'flex';
+            };
+
+            window.hideLoading = function() {
+                loadingOverlay.style.display = 'none';
+            };
+
+            // Override fetch to show loading
+            const originalFetch = window.fetch;
+            window.fetch = function() {
+                showLoading();
+                return originalFetch.apply(this, arguments)
+                    .then(response => {
+                        hideLoading();
+                        return response;
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        throw error;
+                    });
+            };
+        }
+
+        // Enhance image preview
+        function enhanceImagePreview() {
+            const imageInput = document.getElementById('productImage');
+            const imagePreview = document.getElementById('imagePreview');
+            const preview = document.getElementById('preview');
+
+            imageInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    // Add loading effect
+                    if (imagePreview.style.display !== 'none') {
+                        preview.style.opacity = '0.5';
+                        const loader = document.createElement('div');
+                        loader.className = 'loading-spinner';
+                        loader.style.width = '30px';
+                        loader.style.height = '30px';
+                        loader.style.position = 'absolute';
+                        loader.style.top = '50%';
+                        loader.style.left = '50%';
+                        loader.style.transform = 'translate(-50%, -50%)';
+                        imagePreview.appendChild(loader);
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Remove loading spinner if exists
+                        const loader = imagePreview.querySelector('.loading-spinner');
+                        if (loader) loader.remove();
+
+                        // Set image and show with animation
+                        preview.src = e.target.result;
+                        preview.style.opacity = '0';
+                        imagePreview.style.display = 'block';
+
+                        setTimeout(() => {
+                            preview.style.opacity = '1';
+                            preview.style.transition = 'opacity 0.5s ease';
+                        }, 100);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Make image preview container relative for loader positioning
+            imagePreview.style.position = 'relative';
+        }
+
+        // Enhance search functionality
+        document.querySelector('.search-bar input').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#productsList tr');
+
+            let hasResults = false;
+
+            tableRows.forEach(row => {
+                const nameCell = row.querySelector('td:first-child');
+                const productName = nameCell ? nameCell.textContent.toLowerCase() : '';
+
+                const categoryCell = row.querySelector('td:nth-child(2)');
+                const productCategory = categoryCell ? categoryCell.textContent.toLowerCase() : '';
+
+
+                if (productName.includes(searchTerm) || productCategory.includes(searchTerm)) {
+                    row.style.display = '';
+                    hasResults = true;
+
+                    // Highlight matching text
+                    if (searchTerm) {
+                        highlightText(row, searchTerm);
+                    } else {
+                        // Remove highlights
+                        removeHighlights(row);
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show no results message
+            const noResultsMsg = document.querySelector('.no-results-message');
+            if (!hasResults && searchTerm) {
+                if (!noResultsMsg) {
+                    const msg = document.createElement('div');
+                    msg.className = 'no-results-message';
+                    msg.textContent = `No products found matching "${searchTerm}"`;
+                    msg.style.textAlign = 'center';
+                    msg.style.padding = '2rem';
+                    msg.style.color = 'var(--text-tertiary)';
+
+                    const table = document.querySelector('.products-table');
+                    table.parentNode.insertBefore(msg, table.nextSibling);
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        });
+
+        // Highlight matching text
+        function highlightText(row, term) {
+            // First remove any existing highlights
+            removeHighlights(row);
+
+            // Get cells to highlight
+            const nameCell = row.querySelector('td:first-child');
+            const categoryCell = row.querySelector('td:nth-child(2)');
+
+            // Highlight function
+            function highlight(cell) {
+                if (!cell) return;
+
+                const text = cell.textContent;
+                const regex = new RegExp(term, 'gi');
+                const highlightedText = text.replace(regex, match => `<span class="highlight">${match}</span>`);
+
+                if (text.toLowerCase().includes(term.toLowerCase())) {
+                    cell.innerHTML = highlightedText;
+                }
+            }
+
+            highlight(nameCell);
+            highlight(categoryCell);
+
+            // Add highlight style if not exists
+            if (!document.querySelector('#highlight-style')) {
+                const style = document.createElement('style');
+                style.id = 'highlight-style';
+                style.textContent = `
+                    .highlight {
+                        background-color: rgba(170, 96, 238, 0.3);
+                        border-radius: 2px;
+                        padding: 0 2px;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Remove highlights
+        function removeHighlights(row) {
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                if (cell.querySelector('.highlight')) {
+                    cell.textContent = cell.textContent;
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - Vish Tharu Lovely Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/products.css">
+</head>
+
+<body>
+    <div style="text-align:center; margin: 2rem 0 1rem 0;">
+
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">
+            <h1 class="text-gradient">Vish Tharu</h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../index.html" class="underline-effect">Home</a></li>
+            <li><a href="products.html" class="active underline-effect">Products</a></li>
+            <li><a href="about.html" class="underline-effect">About</a></li>
+            <li><a href="contact.html" class="underline-effect">Contact</a></li>
+            <li><a href="admin.html" class="underline-effect">Admin</a></li>
+        </ul>
+        <!-- Cart toggle moved outside nav-links for better mobile positioning -->
+        <a href="#" class="cart-toggle" aria-label="Shopping Cart">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-badge">0</span>
+        </a>
+        <div class="burger">
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="line3"></div>
+        </div>
+    </nav>
+
+    <!-- Cart Container -->
+    <div class="cart-overlay"></div>
+    <div class="cart-container">
+        <div class="cart-header">
+            <h2><i class="fas fa-shopping-bag me-2"></i> Your Cart</h2>
+            <button class="cart-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cart-items">
+            <!-- Empty cart state -->
+            <div class="cart-empty">
+                <i class="fas fa-shopping-cart custom-float"></i>
+                <h3>Your cart is empty</h3>
+                <p>Looks like you haven't added any items to your cart yet.</p>
+                <a href="pages/products.html" class="btn btn-primary">Start Shopping</a>
+            </div>
+            <!-- Cart items will be added here dynamically -->
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total:</span>
+                <span class="cart-total-amount">LKR 0.00</span>
+            </div>
+            <div class="cart-actions">
+                <button class="checkout-btn">
+                    <i class="fas fa-credit-card me-2"></i> Checkout
+                </button>
+                <a href="#" class="whatsapp-order-btn">
+                    <i class="fab fa-whatsapp"></i> Order via WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to Cart Feedback -->
+    <div class="add-to-cart-feedback">
+        Item added to your cart!
+    </div>
+
+    <!-- Filter Section
+    <section class="filter-section">
+        <div class="filter-options">
+            <button class="filter-button active" data-filter="all">All Products</button>
+             Categories will be added dynamically 
+        </div>
+    </section> -->
+
+    <!-- Category Section -->
+    <section class="category-section">
+        <div class="category-grid">
+            <div class="category-card" data-category="mens-fashion">
+                <h3>Men's Fashion</h3>
+            </div>
+            <div class="category-card" data-category="womens-fashion">
+                <h3>Women's Fashion</h3>
+            </div>
+            <div class="category-card" data-category="electronics">
+                <h3>Electronics</h3>
+            </div>
+            <div class="category-card" data-category="home-kitchen">
+                <h3>Home & Kitchen</h3>
+            </div>
+            <div class="category-card" data-category="beauty">
+                <h3>Beauty & Personal Care</h3>
+            </div>
+            <div class="category-card" data-category="health">
+                <h3>Health & Wellness</h3>
+            </div>
+            <div class="category-card" data-category="baby-kids">
+                <h3>Baby & Kids</h3>
+            </div>
+            <div class="category-card" data-category="sports">
+                <h3>Sports & Outdoors</h3>
+            </div>
+            <div class="category-card" data-category="automotive">
+                <h3>Automotive & Tools</h3>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <section class="products-grid" id="productsGrid">
+        <!-- Products will be added here dynamically -->
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="decorative-circle decorative-circle-1"></div>
+        <div class="decorative-circle decorative-circle-2"></div>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p><i class="fas fa-phone"></i> +94757997430</p>
+                <p><i class="fas fa-map-marker-alt"></i> Gampola, Sri Lanka</p>
+                <p><i class="fas fa-envelope"></i> info@vishtharu.com</p>
+                <a href="https://maps.app.goo.gl/bUR6z3chArqfvKtz5" target="_blank" class="location-link">
+                    <i class="fas fa-map"></i> View Location
+                </a>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="pages/products.html">Products</a></li>
+                    <li><a href="pages/about.html">About</a></li>
+                    <li><a href="pages/contact.html">Contact</a></li>
+                    <li><a href="pages/terms.html">Terms & Conditions</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <a href="https://wa.me/94757997430" class="social-link" target="_blank">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <a href="#" class="social-link" target="_blank">
+                    <i class="fab fa-facebook"></i> Facebook
+                </a>
+                <a href="#" class="social-link" target="_blank">
+                    <i class="fab fa-instagram"></i> Instagram
+                </a>
+            </div>
+            <div class="footer-section">
+                <h3>Newsletter</h3>
+                <p>Subscribe to receive updates on new products and special promotions.</p>
+                <form class="newsletter-form">
+                    <div class="input-group mb-3">
+                        <input type="email" class="form-control" placeholder="Your Email" required>
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Vish Tharu Lovely Shop. All rights reserved. | Designed with <i class="fas fa-heart text-primary"></i> in Sri Lanka</p>
+        </div>
+    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../scripts/main.js"></script>
+    <script src="../scripts/animations.js"></script>
+    <script src="../scripts/cart.js"></script>
+    <script>
+        // Display products
+        function displayProducts() {
+            const productsGrid = document.querySelector('.products-grid');
+
+            // Fetch products from API
+            fetch('../api/products.php')
+                .then(response => response.json())
+                .then(data => {
+                    const products = data.records || [];
+
+                    if (products.length === 0) {
+                        productsGrid.innerHTML = '<div class="no-products">No products found</div>';
+                        return;
+                    }
+
+                    productsGrid.innerHTML = ''; // Clear existing products
+
+                    products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'product-card hover-lift';
+                        productCard.dataset.id = product.id;
+
+                        // Improved price parsing logic
+                        let price = 0;
+                        if (product.price_range) {
+                            // Handle price if it's already a number
+                            if (!isNaN(product.price_range)) {
+                                price = parseFloat(product.price_range);
+                            }
+                            // Handle price if it's a string containing only a number
+                            else if (!isNaN(parseFloat(product.price_range))) {
+                                price = parseFloat(product.price_range);
+                            }
+                            // If price_range contains text like "LKR 1500" or other format
+                            else {
+                                const extracted = product.price_range.replace(/[^\d.]/g, '');
+                                if (extracted && !isNaN(parseFloat(extracted))) {
+                                    price = parseFloat(extracted);
+                                }
+                            }
+                        }
+
+                        productCard.innerHTML = `
+                            <img src="${product.image}" alt="${product.name}" class="product-image">
+                            <div class="product-info">
+                                <div class="product-category">${product.category}</div>
+                                <div class="product-title">${product.name}</div>
+                                <div class="product-color">Color: ${product.color}</div>
+                                <div class="product-price">
+                                    LKR ${price.toFixed(2)}
+                                </div>
+                                <div class="product-description">${product.description}</div>
+                                <div class="product-actions">
+                                    <button class="add-to-cart">Add to Cart</button>
+                                    <a href="https://wa.me/94757997430?text=I'm%20interested%20in%20${encodeURIComponent(product.name)}" class="whatsapp-btn">
+                                        <i class="fab fa-whatsapp"></i> Inquire
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+
+                        productsGrid.appendChild(productCard);
+                    });
+
+                    // Add event listeners to "Add to Cart" buttons
+                    document.querySelectorAll('.add-to-cart').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const productCard = this.closest('.product-card');
+                            const productId = parseInt(productCard.dataset.id);
+                            const product = products.find(p => p.id === parseInt(productId));
+
+                            if (product) {
+                                window.cart.addItem({
+                                    id: product.id,
+                                    name: product.name,
+                                    price: parseFloat(product.price_range) || 0,
+                                    image: product.image,
+                                    quantity: 1
+                                });
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching products:', error);
+                    productsGrid.innerHTML = '<div class="no-products">Error loading products. Please try again later.</div>';
+                });
+        }
+
+        // Initial products display
+        document.addEventListener('DOMContentLoaded', displayProducts);
+
+        // Filter functionality can be added here
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Vish Tharu Lovely Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/admin.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+
+<body>
+    <!-- Login Form -->
+    <div class="login-container" id="loginSection">
+        <div class="login-form animate__animated animate__fadeIn">
+            <div style="text-align:center; margin-bottom: 1rem;">
+                <img src="../image/img1.jpg" alt="Vish Tharu Lovely Shop Logo" class="animate__animated animate__fadeInDown" style="max-width:120px; width:60%; height:auto; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            </div>
+            <h2>Admin Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div class="admin-container" id="dashboardSection" style="display: none;">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Vish Tharu Lovely Shop</h2>
+                <p>Admin Dashboard</p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="admin-products.html"><i class="fas fa-box"></i> Products</a></li>
+                <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="search-bar" data-tooltip="Search for products, orders, or customers">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="user-menu">
+                    <img src="../image/img1.jpg" alt="Admin">
+                    <span>Admin User</span>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card fade-in" data-tooltip="Total number of products in the inventory">
+                    <h3>Total Products</h3>
+                    <div class="value" id="totalProducts">0</div>
+                </div>
+                <div class="stat-card fade-in" data-tooltip="Number of products currently in stock">
+                    <h3>Available Products</h3>
+                    <div class="value" id="availableProducts">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Products Table -->
+            <div class="table-container slide-in">
+                <h3>Recent Products</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Color</th>
+                            <th>Price (LKR)</th>
+                            <th>Availability</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentProducts">
+                        <!-- Products will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="../scripts/main.js"></script>
+    <script src="../scripts/animations.js"></script>
+    <script>
+        // Admin Login
+        const loginForm = document.getElementById('loginForm');
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const adminLogoutBtn = document.getElementById('logoutBtn');
+        const totalProductsElement = document.getElementById('totalProducts');
+        const availableProductsElement = document.getElementById('availableProducts');
+        const recentProductsElement = document.getElementById('recentProducts');
+
+        // Check if user is already logged in
+        function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            if (token) {
+                // Verify token with server
+                fetch('../api/auth.php', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Server returned invalid response format');
+                        }
+
+                        if (!response.ok) {
+                            localStorage.removeItem('admin_token');
+                            throw new Error('Authentication failed');
+                        }
+
+                        return response.text().then(text => {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('Failed to parse server response:', text);
+                                throw new Error('Server returned invalid JSON response');
+                            }
+                        });
+                    })
+                    .then(data => {
+                        if (data.authenticated) {
+                            loginSection.style.display = 'none';
+                            dashboardSection.style.display = 'flex';
+                            updateDashboardStats();
+                        } else {
+                            localStorage.removeItem('admin_token');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Auth check error:', {
+                            message: error.message,
+                            timestamp: new Date().toISOString()
+                        });
+                        localStorage.removeItem('admin_token');
+                    });
+            }
+        }
+
+        // Function to update dashboard stats
+        function updateDashboardStats() {
+            const token = localStorage.getItem('admin_token');
+            fetch('../api/products.php', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    // Log the raw response for debugging
+                    return response.text().then(text => {
+                        console.log("Raw server response:", text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error("Failed to parse JSON:", text);
+                            throw new Error("Invalid JSON response");
+                        }
+                    });
+                })
+                .then(data => {
+                    const products = data.records || [];
+                    const availableProducts = products.filter(product => product.is_available === 'available');
+
+                    totalProductsElement.textContent = products.length;
+                    availableProductsElement.textContent = availableProducts.length;
+
+                    // Update recent products table
+                    recentProductsElement.innerHTML = '';
+                    const recentProducts = products.slice(-5).reverse();
+                    recentProducts.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                        <td>${escapeHtml(product.name)}</td>
+                        <td>${escapeHtml(product.color)}</td>
+                        <td>${product.price_range !== undefined && product.price_range !== null ? 
+            product.price_range.toLocaleString('en-LK', { style: 'currency', currency: 'LKR' }) : 
+            'Price not set'}</td>
+        <td><span class="status ${product.is_available}">${product.is_available}</span></td>
+    `;
+                        recentProductsElement.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching products:', error);
+                    if (error.status === 401) {
+                        handleLogout();
+                    }
+                });
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Handle login
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Validate inputs
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            // Hash password client-side before sending
+            const hashedPassword = CryptoJS.SHA256(password).toString();
+            // Add this right after calculating hashedPassword
+            console.log('Sending credentials:', {
+                username: username,
+                hashedPassword: hashedPassword
+            });
+
+            fetch('../api/auth.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: hashedPassword
+                    })
+                })
+                .then(response => {
+                    // First get the response as text
+                    return response.text().then(text => {
+                        try {
+                            // Try to parse as JSON
+                            const data = JSON.parse(text);
+
+                            // If response was not OK, throw an error with the parsed message
+                            if (!response.ok) {
+                                throw new Error(data.message || 'Login failed');
+                            }
+
+                            return data;
+                        } catch (e) {
+                            // If parsing fails, throw an error with the raw text
+                            throw new Error('Server returned non-JSON response: ' + text);
+                        }
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        localStorage.setItem('admin_token', data.token);
+                        loginSection.style.display = 'none';
+                        dashboardSection.style.display = 'flex';
+                        updateDashboardStats();
+                    } else {
+                        throw new Error(data.message || 'Login failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', {
+                        message: error.message,
+                        timestamp: new Date().toISOString(),
+                        username: username
+                    });
+                    alert(error.message);
+                });
+        });
+
+        // Handle logout
+        function handleLogout() {
+            localStorage.removeItem('admin_token');
+            loginSection.style.display = 'flex';
+            dashboardSection.style.display = 'none';
+            loginForm.reset();
+        }
+
+        adminLogoutBtn.addEventListener('click', handleLogout);
+
+        // Check authentication on page load
+        checkAuth();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize animations
+            initAdminAnimations();
+
+            // Add ripple effect to buttons
+            setupRippleEffect();
+
+            // Setup search functionality
+            setupSearch();
+
+            // Setup form animations
+            setupFormAnimations();
+
+            // Setup notification system
+            setupNotifications();
+        });
+
+        // Initialize admin dashboard animations
+        function initAdminAnimations() {
+            // Animate stat counters
+            const statValues = document.querySelectorAll('.stat-card .value');
+
+            statValues.forEach(element => {
+                const finalValue = parseInt(element.textContent);
+                if (!isNaN(finalValue)) {
+                    element.textContent = '0';
+                    animateCounter(element, 0, finalValue, 2000);
+                }
+            });
+
+            // Add tooltip positioning for overflowing tooltips
+            const tooltipElements = document.querySelectorAll('[data-tooltip]');
+
+            tooltipElements.forEach(element => {
+                element.addEventListener('mouseenter', () => {
+                    // We'll use this later to adjust tooltip position if needed
+                    setTimeout(() => {
+                        const tooltip = element.querySelector('.tooltip');
+                        if (tooltip) {
+                            const rect = tooltip.getBoundingClientRect();
+                            if (rect.left < 0) {
+                                tooltip.style.left = '0';
+                                tooltip.style.transform = 'translateX(0)';
+                            } else if (rect.right > window.innerWidth) {
+                                tooltip.style.left = 'auto';
+                                tooltip.style.right = '0';
+                                tooltip.style.transform = 'translateX(0)';
+                            }
+                        }
+                    }, 10);
+                });
+            });
+        }
+
+        // Animate counter from start to end value
+        function animateCounter(element, start, end, duration) {
+            let current = start;
+            const increment = Math.ceil((end - start) / (duration / 16));
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= end) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                element.textContent = current;
+            }, 16);
+        }
+
+        // Setup ripple effect for buttons
+        function setupRippleEffect() {
+            const buttons = document.querySelectorAll('button, .sidebar-menu a, .user-menu');
+
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const ripple = document.createElement('span');
+                    ripple.className = 'ripple-effect';
+                    ripple.style.top = `${y}px`;
+                    ripple.style.left = `${x}px`;
+
+                    this.appendChild(ripple);
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+        }
+
+        // Setup search functionality
+        function setupSearch() {
+            const searchInput = document.querySelector('.search-bar input');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+
+                    // Example: Searching through products table
+                    const productRows = document.querySelectorAll('#recentProducts tr');
+
+                    productRows.forEach(row => {
+                        const cell = row.querySelector('td:first-child');
+                        const productName = cell ? cell.textContent.toLowerCase() : '';
+
+
+                        if (productName.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+
+        // Setup form animations
+        function setupFormAnimations() {
+            const formInputs = document.querySelectorAll('.form-group input');
+
+            formInputs.forEach(input => {
+                // Focus animations
+                input.addEventListener('focus', () => {
+                    input.parentElement.classList.add('focused');
+                });
+
+                input.addEventListener('blur', () => {
+                    if (!input.value) {
+                        input.parentElement.classList.remove('focused');
+                    }
+                });
+
+                // Check for existing values
+                if (input.value) {
+                    input.parentElement.classList.add('focused');
+                }
+            });
+
+            // Add form validation visual feedback
+            const loginForm = document.getElementById('loginForm');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', () => {
+                    // We'll handle the actual submission in your existing script
+                    // This is just for visual feedback
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+
+                    submitBtn.innerHTML = `
+                        <span class="loading-spinner-sm"></span>
+                        Authenticating...
+                    `;
+                    submitBtn.disabled = true;
+
+                    // We won't add timeout here since your existing code handles submission
+                });
+            }
+        }
+
+        // Setup notifications
+        function setupNotifications() {
+            // Create a notification system
+            window.showNotification = function(message, type = 'info', duration = 5000) {
+                // Remove any existing notification
+                const existingNotification = document.querySelector('.admin-notification');
+                if (existingNotification) {
+                    existingNotification.remove();
+                }
+
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `admin-notification ${type}`;
+
+                // Icon based on type
+                let icon = 'info-circle';
+                if (type === 'success') icon = 'check-circle';
+                if (type === 'error') icon = 'exclamation-circle';
+                if (type === 'warning') icon = 'exclamation-triangle';
+
+                notification.innerHTML = `
+                    <i class="fas fa-${icon}"></i>
+                    <div class="notification-message">${message}</div>
+                    <button class="notification-close"><i class="fas fa-times"></i></button>
+                `;
+
+                // Add to DOM
+                document.body.appendChild(notification);
+
+                // Show notification
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 10);
+
+                // Setup close button
+                notification.querySelector('.notification-close').addEventListener('click', () => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+
+                // Auto-dismiss
+                if (duration > 0) {
+                    setTimeout(() => {
+                        if (document.body.contains(notification)) {
+                            notification.classList.remove('show');
+                            setTimeout(() => {
+                                notification.remove();
+                            }, 300);
+                        }
+                    }, duration);
+                }
+            };
+
+            // Example usage (can be removed)
+            // After successful login
+            // window.showNotification('Login successful. Welcome back!', 'success');
+
+            // After error
+            // window.showNotification('Invalid credentials. Please try again.', 'error');
+        }
+
+        // Add this to handle responsive sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminContainer = document.querySelector('.admin-container');
+
+            if (adminContainer) {
+                // Add mobile menu toggle
+                const sidebarToggle = document.createElement('button');
+                sidebarToggle.className = 'sidebar-toggle';
+                sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
+
+                adminContainer.insertBefore(sidebarToggle, adminContainer.firstChild);
+
+                // Handle toggle click
+                sidebarToggle.addEventListener('click', () => {
+                    adminContainer.classList.toggle('sidebar-collapsed');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
